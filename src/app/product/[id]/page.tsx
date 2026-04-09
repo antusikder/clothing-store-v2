@@ -1,41 +1,56 @@
 'use client';
 
-import { use, useState } from 'react';
+export const dynamic = 'force-dynamic';
+
+import { use, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ShoppingBag, Star, ShieldCheck, Truck, RefreshCw, ChevronLeft } from 'lucide-react';
 import { useCart } from '@/hooks/use-cart';
 import { useCartDrawer } from '@/hooks/use-cart-drawer';
-import { Product } from '@/lib/supabase';
+import { supabase, Product } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-
-// Fallback data helper (since we're client-side for simplicity in this demo)
-const fallbackProducts: Record<string, Product> = {
-  '1': { id: '1', name: 'Premium Silk Panjabi', description: 'Elegant hand-crafted silk Panjabi for formal occasions. Breathable fabric with traditional embroidery.', original_price: 4500, discount_price: 3999, image_url: 'https://images.unsplash.com/photo-1597983073453-ef90a7605d86?q=80&w=1000&auto=format&fit=crop', stock_quantity: 10, created_at: '' },
-  '2': { id: '2', name: 'Midnight Black Hoodie', description: 'Essential heavyweight cotton hoodie with fleece lining. Perfect for winter comfort.', original_price: 2500, discount_price: 1800, image_url: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=1000&auto=format&fit=crop', stock_quantity: 20, created_at: '' },
-  '3': { id: '3', name: 'Essential White T-Shirt', description: 'Premium breathable cotton slim-fit white tee. A staple for every wardrobe.', original_price: 1200, discount_price: 950, image_url: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1000&auto=format&fit=crop', stock_quantity: 50, created_at: '' },
-  '4': { id: '4', name: 'Graphic Streetwear Tee', description: 'Modern oversized graphic print t-shirt. Street-ready design.', original_price: 1500, discount_price: 1200, image_url: 'https://images.unsplash.com/photo-1583743814966-8936f5b721fa?q=80&w=1000&auto=format&fit=crop', stock_quantity: 15, created_at: '' },
-  '5': { id: '5', name: 'Charcoal Grey Hoodie', description: 'Minimalist aesthetic grey hoodie for daily wear. Durable and stylish.', original_price: 2500, discount_price: 2200, image_url: 'https://images.unsplash.com/photo-1556821840-4aef010771cb?q=80&w=1000&auto=format&fit=crop', stock_quantity: 12, created_at: '' },
-  '6': { id: '6', name: 'Heritage Collection Panjabi', description: 'Classic cotton Panjabi with traditional embroidery. Perfect for cultural events.', original_price: 3500, discount_price: 2900, image_url: 'https://images.unsplash.com/photo-1620015353895-4155170f031b?q=80&w=1000&auto=format&fit=crop', stock_quantity: 8, created_at: '' },
-};
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [selectedSize, setSelectedSize] = useState('M');
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  
   const addItem = useCart((state) => state.addItem);
   const openCart = useCartDrawer((state) => state.open);
 
-  const product = fallbackProducts[id];
+  useEffect(() => {
+    async function fetchProduct() {
+      const { data, error } = await supabase.from('Product').select('*').eq('id', id).single();
+      if (data) setProduct(data);
+      setLoading(false);
+    }
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return <div className="min-h-[70vh] flex items-center justify-center font-bold text-gray-500 animate-pulse">Loading collection...</div>;
+  }
 
   if (!product) {
-    return <div className="min-h-screen flex items-center justify-center">Product not found.</div>;
+    return <div className="min-h-[70vh] flex items-center justify-center font-bold text-gray-500">Product not found.</div>;
   }
 
   const hasDiscount = product.discount_price && product.discount_price < product.original_price;
 
   const handleAddToCart = () => {
     addItem(product, selectedSize);
+    toast.success(`${product.name} added to cart!`);
     openCart();
+  };
+
+  const handleBuyNow = () => {
+    addItem(product, selectedSize);
+    router.push('/checkout');
   };
 
   return (
@@ -105,9 +120,15 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <button 
               onClick={handleAddToCart}
-              className="flex-1 bg-primary text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-accent hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/10"
+              className="flex-1 bg-black text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-gray-800 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/10 uppercase tracking-widest text-sm"
             >
               <ShoppingBag size={20} /> Add to Cart
+            </button>
+            <button 
+              onClick={handleBuyNow}
+              className="flex-1 bg-accent text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-amber-600 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-accent/20 uppercase tracking-widest text-sm"
+            >
+              Buy Now
             </button>
           </div>
 

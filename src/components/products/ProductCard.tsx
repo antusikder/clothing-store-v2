@@ -6,6 +6,8 @@ import { ShoppingBag, Eye } from 'lucide-react';
 import { Product } from '@/lib/supabase';
 import { useCart } from '@/hooks/use-cart';
 import { useCartDrawer } from '@/hooks/use-cart-drawer';
+import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 interface ProductCardProps {
   product: Product;
@@ -20,10 +22,19 @@ export default function ProductCard({ product }: ProductCardProps) {
     ? Math.round(((product.original_price - (product.discount_price || 0)) / product.original_price) * 100) 
     : 0;
 
+  const router = useRouter();
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     addItem(product);
+    toast.success(`${product.name} added to cart!`);
     openCart();
+  };
+
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    addItem(product);
+    router.push('/checkout');
   };
 
   return (
@@ -36,27 +47,37 @@ export default function ProductCard({ product }: ProductCardProps) {
       )}
 
       {/* Image Container */}
-      <Link href={`/product/${product.id}`} className="block relative aspect-[4/5] overflow-hidden bg-gray-50">
-        <Image
-          src={product.image_url}
-          alt={product.name}
-          fill
-          className="object-cover transition-transform duration-700 group-hover:scale-110"
-        />
+      <div className="relative aspect-[4/5] overflow-hidden bg-gray-50">
+        <Link href={`/product/${product.id}`} className="absolute inset-0 z-0">
+          <Image
+            src={product.image_url}
+            alt={product.name}
+            fill
+            className="object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+        </Link>
         
-        {/* Hover Actions */}
-        <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-black/60 to-transparent flex gap-2">
+        {/* Hover Actions - Positioned as a sibling to the Link */}
+        <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-black/60 to-transparent flex gap-2 z-20">
           <button 
+            type="button"
             onClick={handleAddToCart}
-            className="flex-1 bg-white hover:bg-accent hover:text-white text-primary text-xs font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors"
+            className="flex-1 bg-white hover:bg-black hover:text-white text-black text-[10px] uppercase tracking-widest font-bold py-3 rounded-xl flex items-center justify-center gap-1 transition-colors z-30 shadow-xl"
           >
-            <ShoppingBag size={14} /> Add to Cart
+            <ShoppingBag size={14} /> Cart
           </button>
-          <div className="p-3 bg-white/20 backdrop-blur-md rounded-xl text-white">
+          <button 
+            type="button"
+            onClick={handleBuyNow}
+            className="flex-1 bg-accent text-white text-[10px] uppercase tracking-widest font-bold py-3 rounded-xl flex items-center justify-center transition-colors z-30 hover:scale-[1.02] active:scale-95 shadow-xl"
+          >
+            Buy Now
+          </button>
+          <Link href={`/product/${product.id}`} className="p-3 bg-white/20 backdrop-blur-md hover:bg-black rounded-xl text-white transition-colors z-30 flex items-center justify-center">
             <Eye size={16} />
-          </div>
+          </Link>
         </div>
-      </Link>
+      </div>
 
       {/* Content */}
       <div className="p-4 space-y-1 text-center">
